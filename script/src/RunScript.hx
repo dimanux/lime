@@ -12,6 +12,7 @@ import sys.io.File;
 import sys.io.Process;
 import sys.FileSystem;
 import helpers.FileHelper;
+import helpers.LogHelper;
 import helpers.PathHelper;
 import helpers.PlatformHelper;
 
@@ -106,7 +107,11 @@ class RunScript {
 					
 					if (!FileSystem.exists (source)) {
 						
-						Sys.println ("Warning: Source path \"" + source + "\" does not exist");
+						if (flags.exists ("verbose")) {
+							
+							LogHelper.warn ("", "Warning: Source path \"" + source + "\" does not exist");
+							
+						}
 						
 					} else {
 						
@@ -1009,8 +1014,6 @@ class RunScript {
 	
 	public static function main () {
 		
-		limeDirectory = PathHelper.getHaxelib (new Haxelib ("lime"), true);
-		
 		if (new EReg ("window", "i").match (Sys.systemName ())) {
 			
 			isLinux = false;
@@ -1062,9 +1065,25 @@ class RunScript {
 			
 			for (arg in args) {
 				
+				var equals = arg.indexOf ("=");
+				
 				if (StringTools.startsWith (arg, "-D")) {
 					
 					defines.push (arg);
+					ignoreLength++;
+					
+				} else if (equals > -1 && StringTools.startsWith (arg, "--")) {
+					
+					var argValue = arg.substr (equals + 1);
+					var field = arg.substr (2, equals - 2);
+					
+					if (StringTools.startsWith (field, "haxelib-")) {
+						
+						var name = field.substr (8);
+						PathHelper.haxelibOverrides.set (name, PathHelper.tryFullPath (argValue));
+						
+					}
+					
 					ignoreLength++;
 					
 				} else if (StringTools.startsWith (arg, "-")) {
@@ -1073,12 +1092,18 @@ class RunScript {
 						
 						case "-v", "-verbose":
 							
+							LogHelper.verbose = true;
 							flags.set ("verbose", "");
 							defines.push ("-verbose");
 						
 						case "-d", "-debug":
 							
 							flags.set ("debug", "");
+						
+						case "-nocolor":
+							
+							LogHelper.enableColor = false;
+							Sys.putEnv ("HXCPP_NO_COLOR", "");
 						
 						default:
 							
@@ -1091,6 +1116,8 @@ class RunScript {
 				}
 				
 			}
+			
+			limeDirectory = PathHelper.getHaxelib (new Haxelib ("lime"), true);
 			
 			var path = "";
 			
@@ -1181,6 +1208,8 @@ class RunScript {
 			}
 			
 		} else {
+			
+			limeDirectory = PathHelper.getHaxelib (new Haxelib ("lime"), true);
 			
 			if (command == "setup") {
 				
