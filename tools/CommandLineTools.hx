@@ -589,10 +589,15 @@ class CommandLineTools {
 			var projectName = null;
 			var sampleName = null;
 			
-			if (colonIndex == -1 && words.length > 1) {
+			if (colonIndex == -1) {
 				
 				projectName = words[0];
-				sampleName = words[1];
+				
+				if (words.length > 1) {
+					
+					sampleName = words[1];
+					
+				}
 				
 			} else {
 				
@@ -601,27 +606,27 @@ class CommandLineTools {
 				
 			}
 			
-			if (sampleName == "project") {
+			if (projectName == "project" || sampleName == "project") {
 				
 				CreateTemplate.createProject (words, userDefines);
 				
-			} else if (sampleName == "extension") {
+			} else if (projectName == "extension") {
 				
 				CreateTemplate.createExtension (words, userDefines);
 				
 			} else {
 				
-				if (projectName == "") {
+				if (sampleName == null) {
 					
 					if (FileSystem.exists (PathHelper.combine (PathHelper.getHaxelib (new Haxelib ("lime")), "samples/" + sampleName))) {
 						
 						CreateTemplate.createSample (words, userDefines);
 						
-					} else if (PathHelper.getHaxelib (new Haxelib (sampleName)) != "") {
+					} else if (PathHelper.getHaxelib (new Haxelib (projectName)) != "") {
 						
-						CreateTemplate.listSamples (sampleName, userDefines);
+						CreateTemplate.listSamples (projectName, userDefines);
 						
-					} else if (sampleName == "") {
+					} else if (projectName == "" || projectName == null) {
 						
 						CreateTemplate.listSamples ("lime", userDefines);
 						

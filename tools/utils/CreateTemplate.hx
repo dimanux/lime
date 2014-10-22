@@ -83,10 +83,15 @@ class CreateTemplate {
 		var sampleName = null;
 		var outputName = "SampleProject";
 		
-		if (colonIndex == -1 && words.length > 1) {
+		if (colonIndex == -1) {
 			
 			projectName = words[0];
-			sampleName = words[1];
+			
+			if (words.length > 1) {
+				
+				sampleName = words[1];
+				
+			}
 			
 			if (words.length > 2) {
 				
@@ -107,13 +112,25 @@ class CreateTemplate {
 			
 		}
 		
+		if (projectName == "project") {
+			
+			projectName = "lime";
+			
+			if (sampleName != null) {
+				
+				outputName = sampleName;
+				
+			}
+			
+		}
+		
 		if (projectName == null || projectName == "") {
 			
 			projectName = "lime";
 			
 		}
 		
-		if (projectName != null && projectName != "" && sampleName == "project") {
+		if (projectName != null && projectName != "") {
 			
 			var defines = new Map <String, Dynamic> ();
 			defines.set ("create", 1);
@@ -220,11 +237,21 @@ class CreateTemplate {
 				PathHelper.mkdir (folder);
 				FileHelper.recursiveCopyTemplate (project.templatePaths, "project", folder, context);
 				
-				if (FileSystem.exists (folder + "/Project.hxproj")) {
+				try {
 					
-					FileSystem.rename (folder + "/Project.hxproj", folder + "/" + title + ".hxproj");
+					if (FileSystem.exists (folder + "/Project.hxproj")) {
+						
+						if (FileSystem.exists (folder + "/" + title + ".hxproj")) {
+							
+							FileSystem.deleteFile (folder + "/" + title + ".hxproj");
+							
+						}
+						
+						FileSystem.rename (folder + "/Project.hxproj", folder + "/" + title + ".hxproj");
+						
+					}
 					
-				}
+				} catch (e:Dynamic) {}
 				
 				return;
 				

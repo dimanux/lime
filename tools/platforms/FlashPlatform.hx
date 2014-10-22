@@ -52,10 +52,24 @@ class FlashPlatform extends PlatformTarget {
 			
 			var hxml = File.getContent (project.app.path + "/flash/haxe/" + type + ".hxml");
 			hxml = StringTools.replace (hxml, "\r\n", "\n");
-			hxml = StringTools.replace (hxml, "\n", " ");
+			
+			var lines = hxml.split ("\n");
+			hxml = "";
+			
+			for (line in lines) {
+				
+				if (!StringTools.startsWith (line, "#")) {
+					
+					if (hxml.length > 0) hxml += " ";
+					hxml += line;
+					
+				}
+				
+			}
+			
 			hxml = StringTools.trim (hxml);
 			
-			var args = hxml.split (" ");
+			var args = new EReg ("\\s+", "g").split (hxml);
 			var strip;
 			
 			while ((strip = args.indexOf ("-swf-header")) > -1) {
@@ -63,6 +77,23 @@ class FlashPlatform extends PlatformTarget {
 				args.splice (strip, 2);
 				
 			}
+			
+			/*var index = 1;
+			
+			while (index < args.length) {
+				
+				if (!StringTools.startsWith (args[index - 1], "-") && !StringTools.startsWith (args[index], "-")) {
+					
+					args[index - 1] += " " + args[index];
+					args.splice (index, 1);
+					
+				} else {
+					
+					index++;
+					
+				}
+				
+			}*/
 			
 			if (PlatformHelper.hostPlatform != Platform.WINDOWS) {
 				
