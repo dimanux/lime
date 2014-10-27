@@ -74,7 +74,7 @@ import flash.Lib;
 			
 		}
 		
-		switch (eventInfo.type) {
+		/*switch (eventInfo.type) {
 			
 			case TOUCH_START:
 				
@@ -88,7 +88,7 @@ import flash.Lib;
 				
 				onTouchMove.dispatch (eventInfo.x, eventInfo.y, eventInfo.id);
 			
-		}
+		}*/
 		
 		#elseif flash
 		
