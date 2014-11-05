@@ -2,12 +2,14 @@ package project;
 
 
 import haxe.rtti.Meta;
+import helpers.AssetHelper;
 import helpers.LogHelper;
 
 
 class PlatformTarget {
 	
 	
+	public var additionalArguments:Array <String>;
 	public var command:String;
 	public var project:HXProject;
 	public var targetFlags:Map <String, String>;
@@ -23,10 +25,11 @@ class PlatformTarget {
 	}
 	
 	
-	public function execute ():Void {
+	public function execute (additionalArguments:Array <String>):Void {
 		
-		LogHelper.info ("", "\x1b[32;1mUsing target platform: " + Std.string (project.target).toUpperCase () + "\x1b[0m");
+		LogHelper.info ("", LogHelper.accentColor + "Using target platform: " + Std.string (project.target).toUpperCase () + LogHelper.resetColor);
 		
+		this.additionalArguments = additionalArguments;
 		var metaFields = Meta.getFields (Type.getClass (this));
 		
 		if (!Reflect.hasField (metaFields.display, "ignore") && (command == "display")) {
@@ -38,42 +41,43 @@ class PlatformTarget {
 		//if (!Reflect.hasField (metaFields.clean, "ignore") && (command == "clean" || targetFlags.exists ("clean"))) {
 		if (!Reflect.hasField (metaFields.clean, "ignore") && (command == "clean" || (project.targetFlags.exists ("clean") && command != "rebuild"))) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: CLEAN\x1b[0m");
+			LogHelper.info ("", LogHelper.accentColor + "Running command: CLEAN" + LogHelper.resetColor);
 			clean ();
 			
 		}
 		
 		if (!Reflect.hasField (metaFields.rebuild, "ignore") && (command == "rebuild" || project.targetFlags.exists ("rebuild"))) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: REBUILD\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: REBUILD" + LogHelper.resetColor);
 			rebuild ();
 			
 		}
 		
 		if (!Reflect.hasField (metaFields.update, "ignore") && (command == "update" || command == "build" || command == "test")) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: UPDATE\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: UPDATE" + LogHelper.resetColor);
+			AssetHelper.processLibraries (project);
 			update ();
 			
 		}
 		
 		if (!Reflect.hasField (metaFields.build, "ignore") && (command == "build" || command == "test")) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: BUILD\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: BUILD" + LogHelper.resetColor);
 			build ();
 			
 		}
 		
 		if (!Reflect.hasField (metaFields.install, "ignore") && (command == "install" || command == "run" || command == "test")) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: INSTALL\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: INSTALL" + LogHelper.resetColor);
 			install ();
 			
 		}
 		
 		if (!Reflect.hasField (metaFields.run, "ignore") && (command == "run" || command == "rerun" || command == "test")) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: RUN\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: RUN" + LogHelper.resetColor);
 			run ();
 			
 		}
@@ -82,7 +86,7 @@ class PlatformTarget {
 			
 			if (traceEnabled || command == "trace") {
 				
-				LogHelper.info ("", "\n\x1b[32;1mRunning command: TRACE\x1b[0m");
+				LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: TRACE" + LogHelper.resetColor);
 				this.trace ();
 				
 			}
@@ -91,7 +95,7 @@ class PlatformTarget {
 		
 		if (!Reflect.hasField (metaFields.uninstall, "ignore") && (command == "uninstall")) {
 			
-			LogHelper.info ("", "\n\x1b[32;1mRunning command: UNINSTALL\x1b[0m");
+			LogHelper.info ("", "\n" + LogHelper.accentColor + "Running command: UNINSTALL" + LogHelper.resetColor);
 			uninstall ();
 			
 		}

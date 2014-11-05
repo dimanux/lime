@@ -203,10 +203,28 @@ namespace {
 		
 		return 0;
 	}
-
-	int outline_cubic_to(FVecPtr, FVecPtr , FVecPtr , void *user) {
-		// Cubic curves are not supported
-		return 1;
+	
+	int outline_cubic_to(FVecPtr ctl1, FVecPtr ctl2, FVecPtr to, void *user) {
+		
+		// Cubic curves are not supported, we need to approximate to a quadratic
+		// TODO: divide into multiple curves
+		
+		glyph		 *g = static_cast<glyph*>(user);
+		
+		FT_Vector ctl;
+		ctl.x = (-0.25 * g->x) + (0.75 * ctl1->x) + (0.75 * ctl2->x) + (-0.25 * to->x);
+		ctl.y = (-0.25 * g->y) + (0.75 * ctl1->y) + (0.75 * ctl2->y) + (-0.25 * to->y);
+		
+		g->pts.push_back(PT_CURVE);
+		g->pts.push_back(ctl.x - g->x);
+		g->pts.push_back(ctl.y - g->y);
+		g->pts.push_back(to->x - ctl.x);
+		g->pts.push_back(to->y - ctl.y);
+		
+		g->x = to->x;
+		g->y = to->y;
+		
+		return 0;
 	}
 
 	
@@ -291,56 +309,54 @@ namespace lime {
 	}
 	
 	
-	wchar_t *get_familyname_from_sfnt_name(FT_Face face)
-	{
+	wchar_t *get_familyname_from_sfnt_name (FT_Face face) {
+		
 		wchar_t *family_name = NULL;
 		FT_SfntName sfnt_name;
 		FT_UInt num_sfnt_names, sfnt_name_index;
 		int len, i;
 		
-		if (FT_IS_SFNT(face))
-		{
-			num_sfnt_names = FT_Get_Sfnt_Name_Count(face);
+		if (FT_IS_SFNT (face)) {
+			
+			num_sfnt_names = FT_Get_Sfnt_Name_Count (face);
 			sfnt_name_index = 0;
-			while (sfnt_name_index < num_sfnt_names)
-			{
-				if (!FT_Get_Sfnt_Name(face, sfnt_name_index++, (FT_SfntName *)&sfnt_name))
-				{
-					//if((sfnt_name.name_id == TT_NAME_ID_FONT_FAMILY) &&
-					if((sfnt_name.name_id == 4) &&
-						//(sfnt_name.language_id == GetUserDefaultLCID()) &&
-						(sfnt_name.platform_id == TT_PLATFORM_MICROSOFT) &&
-						(sfnt_name.encoding_id == TT_MS_ID_UNICODE_CS))
-					{
-						/* Note that most fonts contains a Unicode charmap using
-							TT_PLATFORM_MICROSOFT, TT_MS_ID_UNICODE_CS.
-						*/
+			
+			while (sfnt_name_index < num_sfnt_names) {
+				
+				if (!FT_Get_Sfnt_Name (face, sfnt_name_index++, (FT_SfntName *)&sfnt_name) && sfnt_name.name_id == TT_NAME_ID_FULL_NAME) {
+					
+					if (sfnt_name.platform_id == TT_PLATFORM_MACINTOSH) {
 						
-						/* .string :
-								Note that its format differs depending on the 
-								(platform,encoding) pair. It can be a Pascal String, 
-								a UTF-16 one, etc..
-								Generally speaking, the string is "not" zero-terminated.
-								Please refer to the TrueType specification for details..
-								 
-							.string_len :
-								The length of `string' in bytes.
-						*/
+						len = sfnt_name.string_len;
+						family_name = new wchar_t[len + 1];
+						mbstowcs (&family_name[0], &reinterpret_cast<const char*>(sfnt_name.string)[0], len);
+						family_name[len] = L'\0';
+						return family_name;
+						
+					} else if ((sfnt_name.platform_id == TT_PLATFORM_MICROSOFT) && (sfnt_name.encoding_id == TT_MS_ID_UNICODE_CS)) {
 						
 						len = sfnt_name.string_len / 2;
-						family_name = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
-						for(i = 0; i < len; i++)
-						{
-							family_name[i] = ((wchar_t)sfnt_name.string[i*2 + 1]) | (((wchar_t)sfnt_name.string[i*2]) << 8);
+						family_name = (wchar_t*)malloc ((len + 1) * sizeof (wchar_t));
+						
+						for (i = 0; i < len; i++) {
+							
+							family_name[i] = ((wchar_t)sfnt_name.string[i * 2 + 1]) | (((wchar_t)sfnt_name.string[i * 2]) << 8);
+							
 						}
-						family_name[len] = 0;
+						
+						family_name[len] = L'\0';
 						return family_name;
+						
 					}
+					
 				}
+				
 			}
+			
 		}
 		
 		return NULL;
+		
 	}
 	
 	
@@ -370,7 +386,7 @@ namespace lime {
 		
 		while (glyph_index != 0) {
 			
-			if (FT_Load_Glyph (face, glyph_index, FT_LOAD_FORCE_AUTOHINT | FT_LOAD_DEFAULT) == 0) {
+			if (FT_Load_Glyph (face, glyph_index, FT_LOAD_NO_BITMAP | FT_LOAD_FORCE_AUTOHINT | FT_LOAD_DEFAULT) == 0) {
 				
 				glyph *g = new glyph;
 				result = FT_Outline_Decompose (&face->glyph->outline, &ofn, g);
@@ -442,6 +458,8 @@ namespace lime {
 		alloc_field (ret, val_id ("descend"), alloc_int (face->descender));
 		alloc_field (ret, val_id ("height"), alloc_int (face->height));
 		
+		delete family_name;
+		
 		// 'glyphs' field
 		value neko_glyphs = alloc_array (num_glyphs);
 		for (i = 0; i < glyphs.size (); i++) {
@@ -500,6 +518,13 @@ namespace lime {
 		}
 		
 		return ret;
+		
+	}
+	
+	
+	value Font::GetFamilyName () {
+		
+		return alloc_wstring (get_familyname_from_sfnt_name (face));
 		
 	}
 	

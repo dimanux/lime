@@ -17,10 +17,12 @@ import project.AssetType;
 import sys.FileSystem;
 import sys.io.File;
 
-#if lime
+#if (lime && !lime_legacy)
 import helpers.FileHelper;
 import helpers.ProcessHelper;
+import lime.graphics.Font;
 import sys.io.Process;
+@:access(lime.graphics.Font)
 #end
 
 
@@ -386,7 +388,7 @@ class HXProject {
 	}
 	
 	
-	#if lime
+	#if (lime && !lime_legacy)
 	
 	public static function fromFile (projectFile:String, userDefines:Map <String, Dynamic> = null, includePaths:Array <String> = null):HXProject {
 		
@@ -710,7 +712,7 @@ class HXProject {
 	}
 	
 	
-	#if lime
+	#if (lime && !lime_legacy)
 	
 	@:noCompletion private static function processHaxelibs (project:HXProject, userDefines:Map <String, Dynamic>):Void {
 		
@@ -904,6 +906,20 @@ class HXProject {
 				}
 				
 				embeddedAsset.type = Std.string (asset.type).toLowerCase ();
+				
+				#if (lime && !lime_legacy)
+				if (asset.type == FONT) {
+					
+					try {
+						
+						var font = Font.fromFile (asset.sourcePath);
+						embeddedAsset.fontName = font.fontName;
+						
+					} catch (e:Dynamic) {}
+					
+				}
+				#end
+				
 				context.assets.push (embeddedAsset);
 				
 			}
@@ -936,7 +952,7 @@ class HXProject {
 				
 			}
 			
-			#if lime
+			#if (lime && !lime_legacy)
 			
 			var cache = LogHelper.verbose;
 			LogHelper.verbose = false;
@@ -951,6 +967,7 @@ class HXProject {
 			LogHelper.verbose = cache;
 			
 			var split = output.split ("\n");
+			var haxelibName = null;
 			
 			for (arg in split) {
 				
@@ -960,20 +977,39 @@ class HXProject {
 					
 					if (!StringTools.startsWith (arg, "-")) {
 						
-						var param = "-cp " + PathHelper.standardize (arg);
+						var path = PathHelper.standardize (arg);
+						var param = "-cp " + path;
 						compilerFlags.remove (param);
 						compilerFlags.push (param);
-						//if (compilerFlags.indexOf ("-cp " + arg) == -1) {
+						
+						var version = "0.0.0";
+						var jsonPath = PathHelper.combine (path, "haxelib.json");
+						
+						try {
 							
-							//compilerFlags.push ("-cp " + PathHelper.standardize (arg));
+							if (FileSystem.exists (jsonPath)) {
+								
+								var json = Json.parse (File.getContent (jsonPath));
+								haxelibName = json.name;
+								compilerFlags = ArrayHelper.concatUnique (compilerFlags, [ "-D " + haxelibName + "=" + json.version ], true);
+								
+							}
 							
-						//}
+						} catch (e:Dynamic) {}
 						
 					} else {
 						
 						if (StringTools.startsWith (arg, "-D ") && arg.indexOf ("=") == -1) {
 							
-							var haxelib = new Haxelib (arg.substr (3));
+							var name = arg.substr (3);
+							
+							if (name != haxelibName) {
+								
+								compilerFlags = ArrayHelper.concatUnique (compilerFlags, [ "-D " + name ], true);
+								
+							}
+							
+							/*var haxelib = new Haxelib (arg.substr (3));
 							var path = PathHelper.getHaxelib (haxelib);
 							var version = getHaxelibVersion (haxelib);
 							
@@ -982,7 +1018,7 @@ class HXProject {
 								CompatibilityHelper.patchProject (this, haxelib, version);
 								compilerFlags = ArrayHelper.concatUnique (compilerFlags, [ "-D " + haxelib.name + "=" + version ], true);
 								
-							}
+							}*/
 							
 						} else if (!StringTools.startsWith (arg, "-L")) {
 							
