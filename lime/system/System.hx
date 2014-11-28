@@ -2,12 +2,12 @@ package lime.system;
 #if !macro
 
 
-#if js
+#if (js && html5)
 import js.html.HtmlElement;
 import js.Browser;
 #end
 
-#if sys
+#if (sys && !html5)
 import sys.io.Process;
 #end
 
@@ -25,7 +25,7 @@ class System {
 	#end
 	
 	
-	#if js
+	#if (js && html5)
 	@:keep @:expose("lime.embed")
 	public static function embed (elementName:String, width:Null<Int> = null, height:Null<Int> = null, background:String = null) {
 		
@@ -74,6 +74,8 @@ class System {
 		#if tools
 		ApplicationMain.config.background = color;
 		ApplicationMain.config.element = element;
+		ApplicationMain.config.width = width;
+		ApplicationMain.config.height = height;
 		ApplicationMain.create ();
 		#end
 		
@@ -83,7 +85,7 @@ class System {
 	
 	static private function findHaxeLib (library:String):String {
 		
-		#if sys
+		#if (sys && !html5)
 		
 		try {
 			
@@ -149,7 +151,7 @@ class System {
 		}
 		
 		#if !disable_cffi
-		#if sys
+		#if (sys && !html5)
 		
 		#if (iphone || emscripten || android || static_link)
 		return cpp.Lib.load (library, method, args);
@@ -162,6 +164,8 @@ class System {
 			return cpp.Lib.load (__moduleNames.get (library), method, args);
 			#elseif neko
 			return neko.Lib.load (__moduleNames.get (library), method, args);
+			#elseif nodejs
+			return js.Lib.load (__moduleNames.get (library), method, args);
 			#else
 			return null;
 			#end
@@ -239,7 +243,7 @@ class System {
 	
 	private static function sysName ():String {
 		
-		#if sys
+		#if (sys && !html5)
 		#if cpp
 		var sys_string = cpp.Lib.load ("std", "sys_string", 0);
 		return sys_string ();
@@ -255,7 +259,7 @@ class System {
 	
 	private static function tryLoad (name:String, library:String, func:String, args:Int):Dynamic {
 		
-		#if sys
+		#if (sys && !html5 || nodejs)
 		
 		try {
 			
@@ -263,6 +267,8 @@ class System {
 			var result = cpp.Lib.load (name, func, args);
 			#elseif (neko)
 			var result = neko.Lib.load (name, func, args);
+			#elseif nodejs
+			var result = js.Lib.load (name, func, args);
 			#else
 			var result = null;
 			#end
@@ -290,7 +296,7 @@ class System {
 	
 	private static function loaderTrace (message:String) {
 		
-		#if sys
+		#if (sys && !html5)
 		
 		#if cpp
 		var get_env = cpp.Lib.load ("std", "get_env", 1);

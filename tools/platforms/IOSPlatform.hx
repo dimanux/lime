@@ -10,6 +10,7 @@ import helpers.CPPHelper;
 import helpers.FileHelper;
 import helpers.IconHelper;
 import helpers.IOSHelper;
+import helpers.LogHelper;
 import helpers.PathHelper;
 import helpers.PlatformHelper;
 import helpers.ProcessHelper;
@@ -324,11 +325,17 @@ class IOSPlatform extends PlatformTarget {
 	
 	public override function rebuild ():Void {
 		
-		var armv6 = [ "-Diphoneos", "-DHXCPP_CPP11" ];
-		var armv7 = [ "-Diphoneos", "-DHXCPP_CPP11", "-DHXCPP_ARMV7" ];
-		var simulator = [ "-Diphonesim", "-DHXCPP_CPP11" ];
+		var armv6 = (command == "rebuild" || (project.architectures.indexOf (Architecture.ARMV6) > -1 && !project.targetFlags.exists ("simulator")));
+		var armv7 = (command == "rebuild" || (project.architectures.indexOf (Architecture.ARMV7) > -1 && !project.targetFlags.exists ("simulator")));
+		var simulator = (command == "rebuild" || project.targetFlags.exists ("simulator"));
 		
-		CPPHelper.rebuild (project, [ armv6, armv7, simulator ]);
+		var commands = [];
+		
+		if (armv6) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11" ]);
+		if (armv7) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11", "-DHXCPP_ARMV7" ]);
+		if (simulator) commands.push ([ "-Diphonesim", "-DHXCPP_CPP11" ]);
+		
+		CPPHelper.rebuild (project, commands);
 		
 	}
 	
@@ -399,8 +406,12 @@ class IOSPlatform extends PlatformTarget {
 			
 			if (!match) {
 				
+				LogHelper.info ("", " - \x1b[1mGenerating image:\x1b[0m " + PathHelper.combine (projectDirectory, splashScreenNames[i]));
+				
 				var image = new Image (null, 0, 0, width, height, (0xFF << 24) | (project.window.background & 0xFFFFFF));
-				File.saveBytes (PathHelper.combine (projectDirectory, splashScreenNames[i]), image.encode ("png"));
+				var bytes = image.encode ("png");
+				
+				File.saveBytes (PathHelper.combine (projectDirectory, splashScreenNames[i]), bytes);
 				
 			}
 			

@@ -79,6 +79,11 @@ class ProjectXMLParser extends HXProject {
 			defines.set ("native", "1");
 			defines.set ("neko", "1");
 			
+		} else if (targetFlags.exists ("nodejs")) {
+			
+			defines.set ("native", "1");
+			defines.set ("nodejs", "1");
+			
 		} else if (target == Platform.FIREFOX) {
 			
 			defines.set ("html5", "1");
@@ -1655,15 +1660,13 @@ class ProjectXMLParser extends HXProject {
 				var path = PathHelper.getHaxelib (new Haxelib (substring.substr (8)), true);
 				substring = PathHelper.standardize (path);
 				
-			} else {
+			} else if (defines.exists (substring)) {
 				
 				substring = defines.get (substring);
 				
-			}
-			
-			if (substring == null) {
+			} else if (environment != null && environment.exists (substring)) {
 				
-				substring = "";
+				substring = environment.get (substring);
 				
 			}
 			
