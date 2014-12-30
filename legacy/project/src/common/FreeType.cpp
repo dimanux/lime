@@ -11,7 +11,7 @@
 #include FT_BITMAP_H
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
-#include <freetype/tttables.h>
+#include <tttables.h>
 
 #ifdef ANDROID
 #include <android/log.h>
