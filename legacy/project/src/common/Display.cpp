@@ -1328,7 +1328,9 @@ void DisplayObjectContainer::Render( const RenderTarget &inTarget, const RenderS
 
                obj_state->mTargetOffset += ImagePoint(render_to.x,render_to.y);
 
-               obj_state->CombineColourTransform(inState,&obj->colorTransform,&col_trans);
+               RenderState empty;
+               ColorTransform empty_col_trans;
+               obj_state->CombineColourTransform(empty,&empty_col_trans,&empty_col_trans);
 
                obj_state->mPhase = rpBitmap;
                obj->Render(render.Target(), *obj_state);
@@ -1349,6 +1351,11 @@ void DisplayObjectContainer::Render( const RenderTarget &inTarget, const RenderS
                }
 
                bitmap = FilterBitmap(filters,bitmap,render_to,visible_bitmap,old_pow2);
+
+			   {
+                   obj_state->CombineColourTransform(inState,&obj->colorTransform,&col_trans);
+                   bitmap->colorTransform(Rect(0,0,bitmap->Width(),bitmap->Height()), col_trans);
+               }
 
                full = orig;
                obj->SetBitmapCache(
