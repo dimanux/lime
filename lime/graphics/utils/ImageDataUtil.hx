@@ -234,15 +234,18 @@ class ImageDataUtil {
 			
 			var length = image.buffer.width * image.buffer.height;
 			
+			var j = 0;
 			for (i in 0...length) {
 				
-				#if html5
-				data[i] = r;
-				data[i + 1] = g;
-				data[i + 2] = b;
-				data[i + 3] = a;
+				j = i * 4;
+				
+				#if js
+				data[j + 0] = r;
+				data[j + 1] = g;
+				data[j + 2] = b;
+				data[j + 3] = a;
 				#else
-				data.setUInt32 (i * 4, rgba);
+				data.setUInt32 (j, rgba);
 				#end
 				
 			}
@@ -263,7 +266,7 @@ class ImageDataUtil {
 					
 					offset = (row * stride) + (column * 4);
 					
-					#if html5
+					#if js
 					data[offset] = r;
 					data[offset + 1] = g;
 					data[offset + 2] = b;
@@ -406,17 +409,23 @@ class ImageDataUtil {
 		var srcRowOffset = srcStride - Std.int (4 * rect.width);
 		var srcRowEnd = Std.int (4 * (rect.x + rect.width));
 		
-		var length = Std.int (4 * rect.width * rect.height);
+		var length = Std.int (rect.width * rect.height);
 		#if js
-		byteArray.length = length;
+		byteArray.length = length * 4;
 		#end
 		
 		for (i in 0...length) {
 			
 			#if flash
 			byteArray.writeUnsignedInt (srcData[srcPosition++]);
+			byteArray.writeUnsignedInt (srcData[srcPosition++]);
+			byteArray.writeUnsignedInt (srcData[srcPosition++]);
+			byteArray.writeUnsignedInt (srcData[srcPosition++]);
 			#else
-			byteArray.__set (i, srcData[srcPosition++]);
+			byteArray.__set (i * 4 + 1, srcData[srcPosition++]);
+			byteArray.__set (i * 4 + 2, srcData[srcPosition++]);
+			byteArray.__set (i * 4 + 3, srcData[srcPosition++]);
+			byteArray.__set (i * 4, srcData[srcPosition++]);
 			#end
 			
 			if ((srcPosition % srcStride) > srcRowEnd) {
@@ -596,26 +605,31 @@ class ImageDataUtil {
 	
 	public static function setPixels (image:Image, rect:Rectangle, byteArray:ByteArray):Void {
 		
-		var len = Math.round (4 * rect.width * rect.height);
+		var len = Math.round (rect.width * rect.height);
 		
 		// TODO: optimize when rect is the same as the buffer size
 		
 		var data = image.buffer.data;
-		var offset = Math.round (4 * image.buffer.width * (rect.y + image.offsetX) + (rect.x + image.offsetY) * 4);
-		var pos = offset;
-		var boundR = Math.round (4 * (rect.x + rect.width + image.offsetX));
+		var offset = Math.round (image.buffer.width * (rect.y + image.offsetX) + (rect.x + image.offsetY));
+		var pos = offset * 4;
+		var boundR = Math.round ((rect.x + rect.width + image.offsetX));
 		var width = image.buffer.width;
+		var color;
 		
 		for (i in 0...len) {
 			
-			if (((pos) % (width * 4)) > boundR - 1) {
+			if (((pos) % (width * 4)) >= boundR * 4) {
 				
-				pos += width * 4 - boundR;
+				pos += (width - boundR) * 4;
 				
 			}
 			
-			data[pos] = byteArray.readByte ();
-			pos++;
+			color = byteArray.readUnsignedInt ();
+			
+			data[pos++] = (color & 0xFF0000) >>> 16;
+			data[pos++] = (color & 0x0000FF00) >>> 8;
+			data[pos++] = (color & 0x000000FF);
+			data[pos++] = (color & 0xFF000000) >>> 24;
 			
 		}
 		

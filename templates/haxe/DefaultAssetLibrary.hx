@@ -519,6 +519,8 @@ class DefaultAssetLibrary extends AssetLibrary {
 			var bytes = ByteArray.readFile ("../res/manifest");
 			#elseif emscripten
 			var bytes = ByteArray.readFile ("assets/manifest");
+			#elseif (mac && java)
+			var bytes = ByteArray.readFile ("../Resources/manifest");
 			#else
 			var bytes = ByteArray.readFile ("manifest");
 			#end
@@ -650,7 +652,7 @@ class DefaultAssetLibrary extends AssetLibrary {
 #elseif html5
 
 #if openfl
-::foreach assets::::if (type == "font")::@:keep #if display private #end class __ASSET__::flatName:: extends openfl.text.Font { public function new () { super (); fontName = "::id::"; } } ::end::
+::foreach assets::::if (type == "font")::@:keep #if display private #end class __ASSET__::flatName:: extends openfl.text.Font { public function new () { super (); fontName = "::fontName::"; } } ::end::
 ::end::
 #end
 

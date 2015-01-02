@@ -162,7 +162,7 @@ public:
             }
          }
       }
-      return mFace->size->metrics.height/(1<<6);
+      return (mFace->size->metrics.ascender - mFace->size->metrics.descender)/(1<<6);
    }
 
 
@@ -198,8 +198,8 @@ public:
          {
             FT_Size_Metrics &metrics = mFace->size->metrics;
             ascender = (float)metrics.ascender/(1<<6);
-            descender = (float)metrics.descender/(1<<6);
-            height = (float)metrics.height/(1<<6);
+            descender = (float)fabs((float)metrics.descender/(1<<6));
+            height = (float)(mFace->size->metrics.ascender - mFace->size->metrics.descender)/(1<<6);
          }
          ioMetrics.ascent = std::max( ioMetrics.ascent, ascender );
          ioMetrics.descent = std::max( ioMetrics.descent, descender );

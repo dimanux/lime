@@ -36,14 +36,14 @@ class IOSPlatform extends PlatformTarget {
 		
 		super (command, _project, targetFlags);
 		
+		targetDirectory = PathHelper.combine (project.app.path, "ios");
+		
 	}
 	
 	
 	public override function build ():Void {
 		
-		var targetDirectory = PathHelper.combine (project.app.path, "ios");
-		
-		IOSHelper.build (project, project.app.path + "/ios");
+		IOSHelper.build (project, targetDirectory);
 		
 		if (!project.targetFlags.exists ("simulator")) {
 			
@@ -57,11 +57,9 @@ class IOSPlatform extends PlatformTarget {
 	
 	public override function clean ():Void {
 		
-		var targetPath = project.app.path + "/ios";
-		
-		if (FileSystem.exists (targetPath)) {
+		if (FileSystem.exists (targetDirectory)) {
 			
-			PathHelper.removeDirectory (targetPath);
+			PathHelper.removeDirectory (targetDirectory);
 			
 		}
 		
@@ -82,7 +80,7 @@ class IOSPlatform extends PlatformTarget {
 		project = project.clone ();
 		
 		project.sources.unshift ("");
-		project.sources = PathHelper.relocatePaths (project.sources, PathHelper.combine (project.app.path, "ios/" + project.app.file + "/haxe"));
+		project.sources = PathHelper.relocatePaths (project.sources, PathHelper.combine (targetDirectory, project.app.file + "/haxe"));
 		//project.dependencies.push ("stdc++");
 		
 		if (project.certificate == null || project.certificate.identity == null) {
@@ -94,7 +92,7 @@ class IOSPlatform extends PlatformTarget {
 		
 		if (project.targetFlags.exists ("xml")) {
 			
-			project.haxeflags.push ("-xml " + project.app.path + "/ios/types.xml");
+			project.haxeflags.push ("-xml " + targetDirectory + "/types.xml");
 			
 		}
 		
@@ -141,56 +139,16 @@ class IOSPlatform extends PlatformTarget {
 			
 		}
 		
-		/*var deployment = Std.parseFloat (iosDeployment);
-		var binaries = iosBinaries;
-		var devices = iosDevices;
-		
-		if (binaries != "fat" && binaries != "armv7" && binaries != "armv6") {
-			
-			InstallerBase.error ("iOS binaries must be one of: \"fat\", \"armv6\", \"armv7\"");
-			
-		}
-		
-		if (devices != "iphone" && devices != "ipad" && devices != "universal") {
-			
-			InstallerBase.error ("iOS devices must be one of: \"universal\", \"iphone\", \"ipad\"");
-			
-		}
-		
-		var iphone = (devices == "universal" || devices == "iphone");
-		var ipad = (devices == "universal" || devices == "ipad");
-		
-		armv6 = ((iphone && deployment < 5.0 && Std.parseInt (defines.get ("IPHONE_VER")) < 6) || binaries == "armv7");
-		armv7 = (binaries != "armv6" || !armv6 || ipad);
-		
-		var valid_archs = new Array <String> ();
-		
-		if (armv6) {
-			
-			valid_archs.push("armv6");
-			
-		}
-		
-		if (armv7) {
-			
-			valid_archs.push("armv7");
-			
-		}
-		
-		if (iosCompiler == "llvm" || iosCompiler == "clang") {
-			
-			context.OBJC_ARC = true;
-			
-		}*/
-		
 		var valid_archs = new Array <String> ();
 		var armv6 = false;
 		var armv7 = false;
+		var armv7s = false;
+		var arm64 = false;
 		var architectures = project.architectures;
 		
 		if (architectures == null || architectures.length == 0) {
 			
-			architectures = [ Architecture.ARMV7 ];
+			architectures = [ Architecture.ARMV7, Architecture.ARM64 ];
 			
 		}
 		
@@ -210,6 +168,8 @@ class IOSPlatform extends PlatformTarget {
 				
 				case ARMV6: valid_archs.push ("armv6"); armv6 = true;
 				case ARMV7: valid_archs.push ("armv7"); armv7 = true;
+				case ARMV7S: valid_archs.push ("armv7s"); armv7s = true;
+				case ARM64: valid_archs.push ("arm64"); arm64 = true;
 				default:
 				
 			}
@@ -225,7 +185,7 @@ class IOSPlatform extends PlatformTarget {
 		
 		var requiredCapabilities = [];
 		
-		if (armv7 && !armv6) {
+		if (!armv6) {
 			
 			requiredCapabilities.push( { name: "armv7", value: true } );
 			
@@ -234,6 +194,8 @@ class IOSPlatform extends PlatformTarget {
 		context.REQUIRED_CAPABILITY = requiredCapabilities;
 		context.ARMV6 = armv6;
 		context.ARMV7 = armv7;
+		context.ARMV7S = armv7s;
+		context.ARM64 = arm64;
 		context.TARGET_DEVICES = switch (project.config.getString ("ios.device", "universal")) { case "iphone": "1"; case "ipad": "2"; default: "1,2";  }
 		context.DEPLOYMENT = project.config.getInt ("ios.deployment", 5);
 		
@@ -325,15 +287,21 @@ class IOSPlatform extends PlatformTarget {
 	
 	public override function rebuild ():Void {
 		
-		var armv6 = (command == "rebuild" || (project.architectures.indexOf (Architecture.ARMV6) > -1 && !project.targetFlags.exists ("simulator")));
+		var armv6 = (project.architectures.indexOf (Architecture.ARMV6) > -1 && !project.targetFlags.exists ("simulator"));
 		var armv7 = (command == "rebuild" || (project.architectures.indexOf (Architecture.ARMV7) > -1 && !project.targetFlags.exists ("simulator")));
-		var simulator = (command == "rebuild" || project.targetFlags.exists ("simulator"));
+		var armv7s = (project.architectures.indexOf (Architecture.ARMV7S) > -1 && !project.targetFlags.exists ("simulator"));
+		var arm64 = (command == "rebuild" || (project.architectures.indexOf (Architecture.ARM64) > -1 && !project.targetFlags.exists ("simulator")));
+		var i386 = (command == "rebuild" || project.targetFlags.exists ("simulator"));
+		var x86_64 = (command == "rebuild" || project.targetFlags.exists ("simulator"));
 		
 		var commands = [];
 		
 		if (armv6) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11" ]);
 		if (armv7) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11", "-DHXCPP_ARMV7" ]);
-		if (simulator) commands.push ([ "-Diphonesim", "-DHXCPP_CPP11" ]);
+		if (armv7s) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11", "-DHXCPP_ARMV7S" ]);
+		if (arm64) commands.push ([ "-Diphoneos", "-DHXCPP_CPP11", "-DHXCPP_ARM64" ]);
+		if (i386) commands.push ([ "-Diphonesim", "-DHXCPP_CPP11" ]);
+		if (x86_64) commands.push ([ "-Diphonesim", "-DHXCPP_M64", "-DHXCPP_CPP11" ]);
 		
 		CPPHelper.rebuild (project, commands);
 		
@@ -342,7 +310,7 @@ class IOSPlatform extends PlatformTarget {
 	
 	public override function run ():Void {
 		
-		IOSHelper.launch (project, PathHelper.combine (project.app.path, "ios"));
+		IOSHelper.launch (project, targetDirectory);
 		
 	}
 	
@@ -360,7 +328,6 @@ class IOSPlatform extends PlatformTarget {
 		
 		var context = generateContext ();
 		
-		var targetDirectory = PathHelper.combine (project.app.path, "ios");
 		var projectDirectory = targetDirectory + "/" + project.app.file + "/";
 		
 		PathHelper.mkdir (targetDirectory);
@@ -406,12 +373,18 @@ class IOSPlatform extends PlatformTarget {
 			
 			if (!match) {
 				
-				LogHelper.info ("", " - \x1b[1mGenerating image:\x1b[0m " + PathHelper.combine (projectDirectory, splashScreenNames[i]));
+				var splashScreenPath = PathHelper.combine (projectDirectory, splashScreenNames[i]);
 				
-				var image = new Image (null, 0, 0, width, height, (0xFF << 24) | (project.window.background & 0xFFFFFF));
-				var bytes = image.encode ("png");
-				
-				File.saveBytes (PathHelper.combine (projectDirectory, splashScreenNames[i]), bytes);
+				if (!FileSystem.exists (splashScreenPath)) {
+					
+					LogHelper.info ("", " - \x1b[1mGenerating image:\x1b[0m " + PathHelper.combine (projectDirectory, splashScreenNames[i]));
+					
+					var image = new Image (null, 0, 0, width, height, (0xFF << 24) | (project.window.background & 0xFFFFFF));
+					var bytes = image.encode ("png");
+					
+					File.saveBytes (splashScreenPath, bytes);
+					
+				}
 				
 			}
 			
@@ -431,9 +404,9 @@ class IOSPlatform extends PlatformTarget {
 		
 		PathHelper.mkdir (projectDirectory + "/lib");
 		
-		for (archID in 0...3) {
+		for (archID in 0...6) {
 			
-			var arch = [ "armv6", "armv7", "i386" ][archID];
+			var arch = [ "armv6", "armv7", "armv7s", "arm64", "i386", "x86_64" ][archID];
 			
 			if (arch == "armv6" && !context.ARMV6)
 				continue;
@@ -441,7 +414,13 @@ class IOSPlatform extends PlatformTarget {
 			if (arch == "armv7" && !context.ARMV7)
 				continue;
 			
-			var libExt = [ ".iphoneos.a", ".iphoneos-v7.a", ".iphonesim.a" ][archID];
+			if (arch == "armv7s" && !context.ARMV7S)
+				continue;
+			
+			if (arch == "arm64" && !context.ARM64)
+				continue;
+			
+			var libExt = [ ".iphoneos.a", ".iphoneos-v7.a", ".iphoneos-v7s.a", ".iphoneos-64.a", ".iphonesim.a", ".iphonesim-64.a" ][archID];
 			
 			PathHelper.mkdir (projectDirectory + "/lib/" + arch);
 			PathHelper.mkdir (projectDirectory + "/lib/" + arch + "-debug");
