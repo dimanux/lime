@@ -1612,11 +1612,11 @@ void TextField::Render( const RenderTarget &inTarget, const RenderState &inState
                            {
                               //if (fontSurface) mTiles->endTiles();
                               fontSurface = tile.mSurface;
-                              mTiles->beginTiles(fontSurface,!screenGrid,bmNormal);
+                              mTiles->beginTiles(fontSurface,false/*!screenGrid*/,bmNormal);
                            }
 
                            UserPoint p(pos.x+tile.mOx*fontToLocal,pos.y+tile.mOy*fontToLocal);
-                           if (screenGrid)
+                           if (false)//screenGrid)
                            {
                               toScreenGrid(p,matrix);
                            }
