@@ -356,6 +356,7 @@ DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_unmultiply_alpha);
 DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_multiply_alpha);
 DEFINE_LIME_LEGACY_PRIM_MULT(render_surface_to_surface);
 DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_dispose);
+DEFINE_LIME_LEGACY_PRIM_2(bitmap_data_reload);
 DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_destroy_hardware_surface);
 DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_create_hardware_surface);
 DEFINE_LIME_LEGACY_PRIM_1(bitmap_data_dump_bits);
